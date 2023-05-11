@@ -1,0 +1,8 @@
+[submodule "flask_back"]
+	path = flask_back
+	url = https://github.com/MDaniel592/StockFinderBackend
+	branch = main
+[submodule "nextjs_front"]
+	path = nextjs_front
+	url = https://github.com/MDaniel592/StockFinderFrontend
+	branch = main

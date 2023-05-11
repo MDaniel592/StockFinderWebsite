@@ -1,0 +1,97 @@
+version: "3.9"
+
+services:
+
+  stockfinder_backend:
+    build: ./flask_back
+    image: stockfinder_backend:latest
+    container_name: stockfinder_backend
+    restart: always
+    expose:
+      - ${DOCKER_BACKEND_PORT}
+    networks:
+      back_front:
+        ipv4_address: ${DOCKER_BACKEND_FRONTEND_IP}
+      postgres:
+        ipv4_address: ${DOCKER_BACKEND_POSTGRESQL_IP}
+      monitoring:
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 1024M
+        reservations:
+          cpus: '1'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 600s
+    env_file:
+      - ./flask_back/.env
+      - .env
+
+  stockfinder_frontend:
+    build: ./nextjs_front
+    image: stockfinder_frontend:latest
+    container_name: stockfinder_frontend
+    restart: always
+    expose:
+      - ${DOCKER_FRONTEND_PORT}
+    networks:
+      - back_front
+      - remoteproxy
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 1024M
+        reservations:
+          cpus: '1'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 600s
+    labels:
+      traefik.enable: true
+      traefik.http.routers.stockfinder_frontend.rule: Host(`stockfinder.tech`) || Host(`www.stockfinder.tech`)
+      traefik.http.routers.stockfinder_frontend.entrypoints: http
+      traefik.http.middlewares.stockfinder_frontend-https-redirect.redirectscheme.scheme: https
+      traefik.http.routers.stockfinder_frontend.middlewares: stockfinder_frontend-https-redirect
+      traefik.http.routers.stockfinder_frontend-secure.entrypoints: https
+      traefik.http.routers.stockfinder_frontend-secure.rule: Host(`stockfinder.tech`) || Host(`www.stockfinder.tech`)
+      traefik.http.routers.stockfinder_frontend-secure.tls: true
+      traefik.http.routers.stockfinder_frontend-secure.service: stockfinder_frontend
+      traefik.http.services.stockfinder_frontend.loadbalancer.server.port: ${DOCKER_FRONTEND_PORT}
+      traefik.docker.network: remoteproxy
+    env_file:
+      - ./nextjs_front/.env.production
+      - .env
+
+networks:
+  back_front:
+    name: back_front
+    ipam:
+      driver: default
+      config:
+        - subnet: ${DOCKER_BACKEND_FRONTEND_NETWORK}
+          gateway: ${DOCKER_BACKEND_FRONTEND_GATEWAY}
+  remoteproxy:
+    name: remoteproxy
+    ipam:
+      driver: default
+      config:
+        - subnet: ${DOCKER_BACKEND_REMOTE_NETWORK}
+  postgres:
+    name: postgres
+    ipam:
+      driver: default
+      config:
+        - subnet: ${DOCKER_BACKEND_POSTGRESQL_NETWORK}
+          gateway: ${DOCKER_BACKEND_POSTGRESQL_GATEWAY}
+  monitoring:
+    name: monitoring
+    driver: bridge
