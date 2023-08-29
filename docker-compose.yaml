@@ -55,6 +55,8 @@ services:
         delay: 5s
         max_attempts: 3
         window: 600s
+    depends_on:
+      - stockfinder_backend
     labels:
       traefik.enable: true
       traefik.http.routers.stockfinder_frontend.rule: Host(`stockfinder.tech`) || Host(`www.stockfinder.tech`)
