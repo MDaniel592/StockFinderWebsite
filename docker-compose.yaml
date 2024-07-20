@@ -1,4 +1,4 @@
-version: "3.9"
+version: "3"
 
 services:
 
@@ -60,10 +60,10 @@ services:
     labels:
       traefik.enable: true
       traefik.http.routers.stockfinder_frontend.rule: Host(`stockfinder.tech`) || Host(`www.stockfinder.tech`)
-      traefik.http.routers.stockfinder_frontend.entrypoints: http
-      traefik.http.middlewares.stockfinder_frontend-https-redirect.redirectscheme.scheme: https
+      traefik.http.routers.stockfinder_frontend.entrypoints: http-ext
+      traefik.http.middlewares.stockfinder_frontend-https-redirect.redirectscheme.scheme: https-ext
       traefik.http.routers.stockfinder_frontend.middlewares: stockfinder_frontend-https-redirect
-      traefik.http.routers.stockfinder_frontend-secure.entrypoints: https
+      traefik.http.routers.stockfinder_frontend-secure.entrypoints: https-ext
       traefik.http.routers.stockfinder_frontend-secure.rule: Host(`stockfinder.tech`) || Host(`www.stockfinder.tech`)
       traefik.http.routers.stockfinder_frontend-secure.tls: true
       traefik.http.routers.stockfinder_frontend-secure.service: stockfinder_frontend
@@ -81,19 +81,12 @@ networks:
       config:
         - subnet: ${DOCKER_BACKEND_FRONTEND_NETWORK}
           gateway: ${DOCKER_BACKEND_FRONTEND_GATEWAY}
+
   remoteproxy:
-    name: remoteproxy
-    ipam:
-      driver: default
-      config:
-        - subnet: ${DOCKER_BACKEND_REMOTE_NETWORK}
+    external: true
+
   postgres:
-    name: postgres
-    ipam:
-      driver: default
-      config:
-        - subnet: ${DOCKER_BACKEND_POSTGRESQL_NETWORK}
-          gateway: ${DOCKER_BACKEND_POSTGRESQL_GATEWAY}
+    external: true
+
   monitoring:
-    name: monitoring
-    driver: bridge
+    external: true
