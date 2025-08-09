@@ -6,3 +6,12 @@
 	path = nextjs_front
 	url = https://github.com/MDaniel592/StockFinderFrontend
 	branch = main
+[submodule "pccomponentes"]
+	path = pccomponentes
+	url = git@github.com:StockFinder/pccomponentes-container.git
+[submodule "nginx_images"]
+	path = nginx_images
+	url = https://github.com/StockFinder/StockFinderNGINX
+[submodule "shops_scrapper"]
+	path = shops_scrapper
+	url = https://github.com/StockFinder/StockFinderScripts
