@@ -5,8 +5,8 @@ services:
     image: stockfinder_backend:latest
     container_name: stockfinder_backend
     restart: always
-    ports:
-      - ${DOCKER_BACKEND_PORT}:${DOCKER_BACKEND_PORT}
+    expose:
+      - ${DOCKER_BACKEND_PORT}
     networks:
       back_front:
         ipv4_address: ${DOCKER_BACKEND_FRONTEND_IP}
@@ -34,11 +34,11 @@ services:
     image: stockfinder_frontend:latest
     container_name: stockfinder_frontend
     restart: always
-    ports:
-      - ${DOCKER_FRONTEND_PORT}:${DOCKER_FRONTEND_PORT}
+    expose:
+      - ${DOCKER_FRONTEND_PORT}
     networks:
       - back_front
-      - remoteproxy
+      - caddy_external_net
     deploy:
       resources:
         limits:
@@ -53,17 +53,8 @@ services:
         max_attempts: 3
         window: 600s
     labels:
-      traefik.enable: true
-      traefik.http.routers.gpufinder_frontend.rule: Host(`gpufinder.ovh`) || Host(`www.gpufinder.ovh`)
-      traefik.http.routers.gpufinder_frontend.entrypoints: http
-      traefik.http.middlewares.gpufinder_frontend-https-redirect.redirectscheme.scheme: https
-      traefik.http.routers.gpufinder_frontend.middlewares: gpufinder_frontend-https-redirect
-      traefik.http.routers.gpufinder_frontend-secure.entrypoints: https
-      traefik.http.routers.gpufinder_frontend-secure.rule: Host(`gpufinder.ovh`) || Host(`www.gpufinder.ovh`)
-      traefik.http.routers.gpufinder_frontend-secure.tls: true
-      traefik.http.routers.gpufinder_frontend-secure.service: gpufinder_frontend
-      traefik.http.services.gpufinder_frontend.loadbalancer.server.port: ${DOCKER_FRONTEND_PORT}
-      traefik.docker.network: remoteproxy
+      caddy: gpufinder.ovh
+      caddy.route.reverse_proxy: "{{upstreams ${DOCKER_FRONTEND_PORT}}}"
     env_file:
       - ./nextjs_front/.env.production
       - .env
@@ -79,11 +70,29 @@ services:
       POSTGRES_USER: ${POSGRESQL_USER}
       POSTGRES_PASSWORD: ${POSGRESQL_PASSWORD}
       POSTGRES_DB: ${POSGRESQL_DATABASE}
-    ports:
-      - ${POSGRESQL_PORT}:${POSGRESQL_PORT}
+    expose:
+      - ${POSGRESQL_PORT}
     networks:
       postgres:
         ipv4_address: ${POSGRESQL_IP}
+
+  cloudflare_updater:
+    build: ./cloudflare_updater
+    image: cloudflare_updater
+    container_name: cloudflare_updater
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 128M
+        reservations:
+          cpus: '1'
+          memory: 64M
+    env_file:
+      - ./cloudflare_updater/.env
+
+
 
 networks:
   back_front:
@@ -93,8 +102,8 @@ networks:
       config:
         - subnet: ${DOCKER_BACKEND_FRONTEND_NETWORK}
           gateway: ${DOCKER_BACKEND_FRONTEND_GATEWAY}
-  remoteproxy:
-    name: remoteproxy
+  caddy_external_net:
+    name: caddy_external_net
     external: true
   postgres:
     name: postgres
